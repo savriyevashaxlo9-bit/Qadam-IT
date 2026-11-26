@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="uz"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050e2a">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<title>Qadam IT</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--tx:#1b2333;--mu:#667085;--br:#2563eb;--bt:#fff;--ok:#16a34a;--bad:#dc2626;--ln:#e3e7ef;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1320;--card:#182030;--tx:#e8ecf4;--mu:#9aa4b5;--br:#5b8cff;--bt:#0b1020;--ln:#29334a;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:760px;margin:0 auto;padding:14px}h2{font-size:1.2rem;margin:4px 0 8px}h3{font-size:1rem;margin:0 0 6px}
+.c{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:14px;margin:10px 0}
+input,select,textarea{width:100%;padding:11px;margin:5px 0;border:1px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+button{font:inherit;cursor:pointer}.b{background:var(--br);color:var(--bt);border:0;border-radius:10px;padding:11px 16px;font-weight:600}
+.r{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ln)}.r:last-child{border:0}
+.m{color:var(--mu);font-size:.85rem}.ok{color:var(--ok)}.bad{color:var(--bad)}.top{display:flex;justify-content:space-between;align-items:center}
+nav{display:flex;gap:6px;overflow-x:auto;padding:8px 0;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+nav button{flex:none;border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:99px;padding:8px 14px}nav button.on{background:var(--br);color:var(--bt);border-color:var(--br)}
+.pill{padding:6px 12px;border-radius:8px;border:1px solid var(--ln);background:var(--bg);color:var(--tx)}.pill.y{background:var(--ok);color:#fff}.pill.n{background:var(--bad);color:#fff}
+</style></head><body><div class="w" id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const U="https://srgjnkhkwyxzhkilidbo.supabase.co",K="sb_publishable_nvI026Cwjdym77bW-bYmJA_T9hoUo4-";
+const sb=supabase.createClient(U,K),sb2=supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}});
+const Q=s=>document.querySelector(s),V=s=>Q(s).value.trim();
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today=()=>new Date().toISOString().slice(0,10),money=n=>n.toLocaleString("ru-RU")+" soʻm";
+const em=l=>l.includes("@")?l:l.toLowerCase()+"@qadam.it";
+const PLAN=[["1-oy","Kompyuter va qurilmalar; operatsion tizim; fayl va papkalar"],["2-oy","Word va matn yozish; internet va xavfsizlik"],["3-oy","Excel asoslari; taqdimot tayyorlash; yakuniy test"]];
+let me=null,D={},tab="",sg="",ss="",sd=today();
+const stu=i=>D.profiles.find(s=>s.id===i)||{},grp=i=>D.groups.find(g=>g.id===i)||{name:"—",fee:0};
+const students=()=>D.profiles.filter(p=>p.role==="student");
+const cnt=s=>D.att.filter(a=>a.sid===s.id&&a.present).length,paid=s=>D.pays.filter(p=>p.sid===s.id).reduce((a,p)=>a+p.sum,0),bal=s=>paid(s)-cnt(s)*grp(s.gid).fee;
+async function load(){const t=["groups","profiles","att","grades","pays","tasks","subs","mats","fb"];const r=await Promise.all(t.map(n=>sb.from(n).select("*")));t.forEach((n,i)=>D[n]=r[i].data||[])}
+async function boot(){const{data:{session}}=await sb.auth.getSession();if(!session){me=null;return draw()}
+ const{data:p}=await sb.from("profiles").select("*").eq("id",session.user.id).maybeSingle();
+ if(!p){await sb.auth.signOut();me=null;return draw("Bu hisobga ruxsat berilmagan")}
+ me=p;await load();tab=p.role==="teacher"?"g":"h";draw()}
+async function doLogin(){Q("#err").textContent="Tekshirilmoqda...";const{error}=await sb.auth.signInWithPassword({email:em(V("#l")),password:Q("#p").value});
+ if(error){Q("#err").textContent="Login yoki parol xato";return}await boot()}
+async function out(){await sb.auth.signOut();me=null;D={};draw()}
+async function run(p){const{error}=await p;if(error){alert("Xato: "+error.message);return false}await load();draw();return true}
+const opts=(l,sel,f)=>l.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(f(x))}</option>`).join("");
+const T=[["g","Guruhlar"],["a","Davomat"],["b","Baho"],["p","Toʻlov"],["v","Vazifa/Darslik"],["f","Fikrlar"],["r","Reja"]],S=[["h","Kabinetim"],["v","Vazifa/Darslik"],["r","Reja"],["f","Fikr"]];
+function setTab(t){tab=t;draw()}
+function draw(e){const A=Q("#app");
+ if(!me){A.innerHTML=`<div class="c" style="margin-top:12vh"><div style="text-align:center"><img src="icon-192.png" alt="Qadam IT" width="120" height="120" style="border-radius:24px"></div><h2 style="text-align:center">Qadam IT</h2><p class="m">Ustoz bergan login va parol bilan kiring.</p><input id="l" placeholder="Login" autocomplete="username" autocapitalize="none"><input id="p" type="password" placeholder="Parol" autocomplete="current-password"><div id="err" class="bad m">${esc(e||"")}</div><button class="b" style="width:100%;margin-top:8px" onclick="doLogin()">Kirish</button></div>`;return}
+ const tb=me.role==="teacher"?T:S;
+ A.innerHTML=`<div class="top"><h2>${me.role==="teacher"?"Ustoz kabineti":esc(me.fn+" "+me.ln)}</h2><button class="pill" onclick="out()">Chiqish</button></div><nav>${tb.map(([k,n])=>`<button class="${k===tab?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("")}</nav><div id="v"></div>`;
+ Q("#v").innerHTML=(me.role==="teacher"?TV:SV)[tab]()}
+const none='<div class="m">Hozircha yoʻq</div>';
+const TV={
+g(){return `<div class="c"><h3>Yangi guruh</h3><input id="gn" placeholder="Guruh nomi"><input id="gf" type="number" placeholder="Bir dars narxi (soʻm)"><button class="b" onclick="addG()">Qoʻshish</button></div>
+<div class="c"><h3>Yangi oʻquvchi</h3><input id="sf" placeholder="Ism"><input id="sl" placeholder="Familiya"><select id="sgp">${opts(D.groups,"",g=>g.name)}</select><input id="sn" placeholder="Login (lotin harf/raqam)" autocapitalize="none"><input id="sp" placeholder="Parol (kamida 6 belgi)"><input id="sh" placeholder="Ota-ona telefoni"><textarea id="si" placeholder="Oʻquvchi haqida maʼlumot"></textarea><button class="b" onclick="addS()">Qoʻshish</button></div>
+${D.groups.map(g=>`<div class="c"><h3>${esc(g.name)} <span class="m">· ${money(g.fee)}/dars</span></h3>${students().filter(s=>s.gid===g.id).map(s=>`<div class="r"><div><b>${esc(s.fn)} ${esc(s.ln)}</b><div class="m">Login: ${esc(s.login)} · ${esc(s.phone)}</div><div class="m">${esc(s.info)}</div></div><button class="pill" onclick="delS('${s.id}')">✕</button></div>`).join("")||none}</div>`).join("")}`},
+a(){const sl=students().filter(s=>s.gid===sg);return `<div class="c"><select onchange="sg=this.value;draw()"><option value="">Guruhni tanlang</option>${opts(D.groups,sg,g=>g.name)}</select><input type="date" value="${sd}" onchange="sd=this.value;draw()"></div><div class="c">${sl.map(s=>{const a=D.att.find(x=>x.sid===s.id&&x.d===sd),v=a?a.present:null;return `<div class="r"><b>${esc(s.fn)} ${esc(s.ln)}</b><span><button class="pill ${v===true?"y":""}" onclick="mark('${s.id}',true)">Keldi</button> <button class="pill ${v===false?"n":""}" onclick="mark('${s.id}',false)">Kelmadi</button></span></div>`}).join("")||'<div class="m">Guruh tanlang</div>'}</div><p class="m">Faqat “Keldi” belgilangan dars puli hisobdan yechiladi.</p>`},
+b(){return `<div class="c"><select onchange="ss=this.value">${opts(students(),ss,s=>s.fn+" "+s.ln)}</select><select id="gv">${[10,9,8,7,6,5].map(n=>`<option>${n}</option>`).join("")}</select><input id="gt" placeholder="Mavzu"><button class="b" onclick="addGr()">Baho qoʻyish</button></div><div class="c">${D.grades.slice().sort((a,b)=>b.d.localeCompare(a.d)).map(g=>`<div class="r"><span>${esc(stu(g.sid).fn)} ${esc(stu(g.sid).ln)} <span class="m">${g.d} · ${esc(g.topic)}</span></span><b>${g.v}</b></div>`).join("")||none}</div>`},
+p(){return `<div class="c"><select onchange="ss=this.value">${opts(students(),ss,s=>s.fn+" "+s.ln)}</select><input id="ps" type="number" placeholder="Toʻlov summasi (oylik)"><button class="b" onclick="addP()">Toʻlovni qayd etish</button></div><div class="c">${students().map(s=>`<div class="r"><span><b>${esc(s.fn)} ${esc(s.ln)}</b><div class="m">Toʻlagan: ${money(paid(s))} · Yechilgan: ${money(cnt(s)*grp(s.gid).fee)}</div></span><b class="${bal(s)<0?"bad":"ok"}">${money(bal(s))}</b></div>`).join("")||none}</div>`},
+v(){return `<div class="c"><h3>Yangi vazifa</h3><select id="tg">${opts(D.groups,"",g=>g.name)}</select><input id="tt" placeholder="Sarlavha"><textarea id="td" placeholder="Vazifa matni"></textarea><button class="b" onclick="addT()">Qoʻshish</button></div><div class="c"><h3>Darslik / slayd havolasi</h3><select id="mg">${opts(D.groups,"",g=>g.name)}</select><input id="mt" placeholder="Nomi"><input id="mu" placeholder="Havola (https://...)"><button class="b" onclick="addM()">Qoʻshish</button></div><div class="c"><h3>Topshirilgan vazifalar</h3>${D.subs.slice().reverse().map(x=>`<div class="r"><span><b>${esc(stu(x.sid).fn)} ${esc(stu(x.sid).ln)}</b> <span class="m">${esc((D.tasks.find(t=>t.id===x.tid)||{}).title)} · ${x.d}</span><div>${esc(x.txt)}</div></span></div>`).join("")||none}</div>`},
+f(){return `<div class="c"><h3>Ota-ona va oʻquvchi fikrlari</h3>${D.fb.slice().reverse().map(x=>`<div class="r"><span><b>${esc(stu(x.sid).fn)}</b> <span class="m">${x.d} · ${esc(x.who)}</span><div>${esc(x.txt)}</div></span></div>`).join("")||none}</div>`},
+r(){return SV.r()+`<div class="c"><h3>Tayyorgarlik</h3><div class="m">Slaydlar, haftalik test, uy vazifasi va probniy dars rejasini har hafta oldindan tayyorlab qoʻying.</div></div>`}};
+const SV={
+h(){const s=me,gs=D.grades,av=gs.length?(gs.reduce((a,g)=>a+g.v,0)/gs.length).toFixed(1):"—";
+ return `<div class="c"><h3>${esc(grp(s.gid).name)}</h3><div class="m">${esc(s.info)}</div></div><div class="c"><h3>Hisobim</h3><div class="r"><span>Toʻlagan</span><b>${money(paid(s))}</b></div><div class="r"><span>Qatnashgan darslar (${cnt(s)} ta)</span><b>${money(cnt(s)*grp(s.gid).fee)}</b></div><div class="r"><span>Qoldiq</span><b class="${bal(s)<0?"bad":"ok"}">${money(bal(s))}</b></div></div><div class="c"><h3>Baholarim · oʻrtacha: ${av}</h3>${gs.map(g=>`<div class="r"><span>${esc(g.topic)} <span class="m">${g.d}</span></span><b>${g.v}</b></div>`).join("")||none}</div>`},
+v(){return `<div class="c"><h3>Vazifalar</h3>${D.tasks.map(t=>{const d=D.subs.find(x=>x.tid===t.id);return `<div class="r" style="display:block"><b>${esc(t.title)}</b><div>${esc(t.descr)}</div>${d?`<div class="ok m">Topshirilgan: ${esc(d.txt)}</div>`:`<textarea id="s${t.id}" placeholder="Javobingiz"></textarea><button class="b" onclick="sub('${t.id}')">Topshirish</button>`}</div>`}).join("")||none}</div><div class="c"><h3>Darslik va slaydlar</h3>${D.mats.map(m=>`<div class="r"><span>${esc(m.title)}</span>${/^https?:\/\//.test(m.url)?`<a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">Ochish</a>`:""}</div>`).join("")||none}</div>`},
+r(){return `<div class="c"><h3>3 oylik reja</h3>${PLAN.map(p=>`<div class="r" style="display:block"><b>${p[0]}</b><div>${p[1]}</div></div>`).join("")}</div>`},
+f(){return `<div class="c"><h3>Fikr bildirish</h3><select id="fw"><option>Oʻquvchi</option><option>Ota-ona</option></select><textarea id="ft" placeholder="Ustoz uchun fikringiz"></textarea><button class="b" onclick="addF()">Yuborish</button></div>`}};
+function addG(){if(!V("#gn"))return;run(sb.from("groups").insert({name:V("#gn"),fee:+V("#gf")||0}))}
+async function addS(){const l=V("#sn").toLowerCase(),p=Q("#sp").value;
+ if(!V("#sf")||!Q("#sgp").value)return alert("Ism va guruhni toʻldiring");
+ if(!/^[a-z0-9._-]{3,20}$/.test(l))return alert("Login: 3-20 ta lotin harf yoki raqam");
+ if(p.length<6)return alert("Parol kamida 6 belgi boʻlsin");
+ const{data,error}=await sb2.auth.signUp({email:em(l),password:p});
+ if(error||!data.user)return alert("Xato: "+(error?error.message:"hisob ochilmadi"));
+ if(await run(sb.from("profiles").insert({id:data.user.id,role:"student",fn:V("#sf"),ln:V("#sl"),login:l,gid:Q("#sgp").value,phone:V("#sh"),info:V("#si")})))alert("Tayyor! Oʻquvchiga bering:\nLogin: "+l+"\nParol: "+p)}
+function delS(i){if(confirm("Oʻquvchi oʻchirilsinmi?"))run(sb.from("profiles").delete().eq("id",i))}
+function mark(i,v){run(sb.from("att").upsert({sid:i,d:sd,present:v},{onConflict:"sid,d"}))}
+function addGr(){const s=ss||(students()[0]||{}).id;if(s)run(sb.from("grades").insert({sid:s,v:+Q("#gv").value,topic:V("#gt")}))}
+function addP(){const s=ss||(students()[0]||{}).id,n=+V("#ps");if(s&&n)run(sb.from("pays").insert({sid:s,sum:n}))}
+function addT(){if(V("#tt")&&Q("#tg").value)run(sb.from("tasks").insert({gid:Q("#tg").value,title:V("#tt"),descr:V("#td")}))}
+function addM(){if(V("#mt")&&Q("#mg").value)run(sb.from("mats").insert({gid:Q("#mg").value,title:V("#mt"),url:V("#mu")}))}
+function sub(t){const x=V("#s"+t);if(x)run(sb.from("subs").insert({tid:t,sid:me.id,txt:x}))}
+async function addF(){const x=V("#ft");if(!x)return;if(await run(sb.from("fb").insert({sid:me.id,who:Q("#fw").value,txt:x})))alert("Rahmat, fikringiz yuborildi")}
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+boot();
+</script></body></html>
